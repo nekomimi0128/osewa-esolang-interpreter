@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お世話言語 インタプリタ (オフライン版)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel Standalone for JSX transformation in browser (for development/offline demo) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* Interフォントを適用 */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* 出力エリアの pre-wrap で整形 */
+        .output-area {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Reactコードがここに含まれます
+        function App() {
+            // useState と useRef を React から正しく取得
+            const { useState, useRef } = React;
+
+            // ヘルプテキストの内容
+            const HELP_TEXT = `
+# 「お世話」言語 ヘルタ 🍵
+
+ようこそ、主様。「お世話」言語をご利用いただき、誠にありがとうございます。ここでは、現在の「お世話」言語でご利用いただける機能と、その使い方をご案内申し上げます。
+
+---
+
+## 1. 変数と値の管理
+
+「お世話」言語では、値を保持するために「〇〇さん」というお名前の箱をご用意いただけます。
+
+### 変数の宣言と値のお渡し
+新しい変数を作成し、そこに数値を格納します。
+
+* **構文:**
+    \`\`\`
+    お名前は「[変数名]さん」でお願いします。
+    「[変数名]さん」に [数値] をお渡しします。
+    \`\`\`
+* **例:**
+    \`\`\`
+    お名前は「リンゴの数さん」でお願いします。
+    「リンゴの数さん」に 5 をお渡しします。
+    \`\`\`
+
+---
+
+## 2. 数値の計算
+
+現在、以下の算術演算をご利用いただけます。
+
+### 掛け算 (倍にする)
+変数の値を指定された数値の倍にします。
+
+* **構文:**
+    \`\`\`
+    「[変数名]さん」を [数値] 倍にしていただけますでしょうか。
+    \`\`\`
+* **例:**
+    \`\`\`
+    お名前は「合計金額さん」でお願いします。
+    「合計金額さん」に 100 をお渡しします。
+    「合計金額さん」を 3 倍にしていただけますでしょうか。
+    \`\`\`
+
+### 足し算
+変数の値に指定された数値を足し合わせます。
+
+* **構文:**
+    \`\`\`
+    「[変数名]さん」に [数値] を足していただけますでしょうか。
+    \`\`\`
+* **例:**
+    \`\`\`
+    お名前は「在庫数さん」でお願いします。
+    「在庫数さん」に 20 をお渡しします。
+    「在庫数さん」に 7 を足していただけますでしょうか。
+    \`\`\`
+
+### 引き算
+変数の値から指定された数値を引きます。
+
+* **構文:**
+    \`\`\`
+    「[変数名]さん」から [数値] を引いていただけますでしょうか。
+    \`\`\`
+* **例:**
+    \`\`\`
+    お名前は「残り時間さん」でお願いします。
+    「残り時間さん」に 60 をお渡しします。
+    「残り時間さん」から 15 を引いていただけますでしょうか。
+    \`\`\`
+
+### 割り算
+変数の値を指定された数値で割ります。
+
+* **構文:**
+    \`\`\`
+    「[変数名]さん」を [数値] で割っていただけますでしょうか。
+    \`\`\`
+* **例:**
+    \`\`\`
+    お名前は「人数さん」でお願いします。
+    「人数さん」に 100 をお渡しします。
+    「人数さん」を 4 で割っていただけますでしょうか。
+    \`\`\`
+
+### 剰余
+変数の値を指定された数値で割り、その**あまり**を元の変数に格納します。
+
+* **構文:**
+    \`\`\`
+    「[変数名]さん」を [数値] で割ったあまりを教えていただけますでしょうか。
+    \`\`\`
+* **例:**
+    \`\`\`
+    お名前は「アメの数さん」でお願いします。
+    「アメの数さん」に 10 をお渡しします。
+    「アメの数さん」を 3 で割ったあまりを教えていただけますでしょうか。
+    「アメの数さん」の値をお聞かせください。
+    \`\`\`
+
+---
+
+## 3. 結果のご報告（出力）
+
+計算結果やメッセージを主様にご報告いたします。
+
+### 変数の値のご報告
+変数の現在の値を出力します。
+
+* **構文:**
+    \`\`\`
+    「[変数名]さん」の値をお聞かせください。
+    \`\`\`
+* **例:**
+    \`\`\`
+    お名前は「現在の時間さん」でお願いします。
+    「現在の時間さん」に 15 をお渡しします。
+    「現在の時間さん」に 5 を足していただけますでしょうか。
+    「現在の時間さん」の値をお聞かせください。
+    \`\`\`
+
+### メッセージのご報告
+指定されたメッセージをそのまま出力します。
+
+* **構文:**
+    \`\`\`
+    「[メッセージ]」とご報告ください。
+    \`\`\`
+* **例:**
+    \`\`\`
+    「本日の業務は終了いたしました。」とご報告ください。
+    \`\`\`
+
+---
+
+## 4. 条件による処理の切り替え
+
+特定の条件に応じて処理を分岐させることができます。多層（ネスト）にすることも可能です。
+
+### もし〜なら（より大きい場合）
+指定された変数の値が、ある数値よりも大きい場合に処理を実行します。**多層（ネスト）にすることも可能です。**
+
+* **構文:**
+    \`\`\`
+    「[変数名]さん」が [比較数値] よりも大きいかどうか、お教えいただけますでしょうか。
+    もし「はい」でございましたら
+        ... (条件が真の場合の処理) ...
+    そうでなければ
+        ... (条件が偽の場合の処理) ...
+    お話は以上でございます。
+    \`\`\`
+    * \`もし「はい」でございましたら\` と \`そうでなければ\` の間に書かれた処理は、**インデント**（字下げ）をすると読みやすくなります。
+    * \`お話は以上でございます。\` でこの条件分岐の終わりを示します。
+
+* **例（単一条件）:**
+    \`\`\`
+    お名前は「気温さん」でお願いします。
+    「気温さん」に 28 をお渡しします。
+
+    「気温さん」が 25 よりも大きいかどうか、お教えいただけますでしょうか。
+    もし「はい」でございましたら
+        「本日は大変暑くございます。」とご報告ください。
+    そうでなければ
+        「快適な気候でございます。」とご報告ください。
+    お話は以上でございます。
+    \`\`\`
+
+### もし〜なら（等しい場合）
+指定された変数の値が、ある数値と**等しいかどうか**で処理を分岐します。
+
+* **構文:**
+    \`\`\`
+    「[変数名]さん」が [比較数値] と同じかどうか、お教えいただけますでしょうか。
+    もし「はい」でございましたら
+        「満点でございます！」とご報告ください。
+    そうでなければ
+        「満点ではございません。」とご報告ください。
+    お話は以上でございます。
+    \`\`\`
+* **例:**
+    \`\`\`
+    お名前は「点数さん」でお願いします。
+    「点数さん」に 100 をお渡しします。
+    「点数さん」が 100 と同じかどうか、お教えいただけますでしょうか。
+    もし「はい」でございましたら
+        「満点でございます！」とご報告ください。
+    そうでなければ
+        「満点ではございません。」とご報告ください。
+    お話は以上でございます。
+    \`\`\`
+
+---
+
+## 5. 繰り返し処理
+
+指定された回数だけ、同じ処理を繰り返すことができます。
+
+* **構文:**
+    \`\`\`
+    [数値] 回繰り返してください。
+        ... (繰り返す処理) ...
+    繰り返しは以上でございます。
+    \`\`\`
+* **例:**
+    \`\`\`
+    お名前は「カウンターさん」でお願いします。
+    「カウンターさん」に 0 を渡してください。
+
+    3 回繰り返してください。
+        「カウンターさん」に 1 を足していただけますでしょうか。
+        「現在のカウンターの値は：」とご報告ください。
+        「カウンターさん」の値をお聞かせください。
+    繰り返しは以上でございます。
+    \`\`\`
+
+---
+
+## 6. ポインタとメモリ操作 (チューリング完全性)
+
+「お世話」言語の内部メモリとポインタを直接操作する機能です。
+
+### ポインタの移動
+* **右へ**: \`ポインタを右にずらしていただけますでしょうか。\`
+* **左へ**: \`ポインタを左にずらしていただけますでしょうか。\`
+
+### ポインタの指すセルの値操作
+* **値の増加**: \`ポインタの値を増やしていただけますでしょうか。\`
+* **値の減少**: \`ポインタの値を減らしていただけますでしょうか。\`
+
+### 入出力
+* **セルの値の文字出力**: \`ポインタの値を読み上げていただけますでしょうか。\` (現在のセルの値をASCII文字として出力)
+* **文字入力と代入**: \`入力をお受け取りいただけますでしょうか。\` (ユーザー入力の最初の文字のASCII値を現在のセルに代入)
+
+### ループ (条件付きジャンプ)
+* **ループ開始**: \`もしポインタの値が0なら、この先へ行っていただけますでしょうか。\`
+* **ループ終了**: \`ポインタの値が0でなければ、ここへ戻っていただけますでしょうか。\`
+
+* **例（「ABC」の出力）:**
+    \`\`\`
+    ポインタの値を増やしていただけますでしょうか。
+    ポインタの値を増やしていただけますでしょうか。
+    ポインタの値を増やしていただけますでしょうか。
+    ポインタを右にずらしていただけますでしょうか。
+    ポインタの値を増やしていただけますでしょうか。
+    ポインタを右にずらしていただけますでしょうか。
+    ポインタの値を増やしていただけますでしょうか。
+    ポインタの値を読み上げていただけますでしょうか。
+    ポインタを右にずらしていただけますでしょうか。
+    ポインタの値を増やしていただけますでしょうか。
+    ポインタの値を読み上げていただけますでしょうか。
+    ポインタを右にずらしていただけますでしょうか。
+    ポインタの値を増やしていただけますでしょうか。
+    ポインタの値を増やしていただけますでしょうか。
+    ポインタの値を増やしていただけますでしょうか。
+    ポインタの値を読み上げていただけますでしょうか。
+    \`\`\`
+
+---
+
+## コードの実行方法
+
+テキストエリアに上記の構文を使ってコードを入力し、**「実行していただきます」**ボタンをクリックすることで、結果が出力されます。
+
+何かご不明な点や、追加したい機能などございましたら、お気軽にお申し付けくださいませ。
+            `;
+
+            const [code, setCode] = useState(''); // 初期コードを空に設定
+            const [output, setOutput] = useState('');
+            const [error, setError] = useState('');
+            const [isInputModalOpen, setIsInputModalOpen] = useState(false);
+            const [inputModalValue, setInputModalValue] = useState('');
+            const resolveInputPromise = useRef(null); // Promiseのresolve関数を保持
+
+            // 字句解析器 (Lexer)
+            // 入力されたコードを意味のある最小単位（トークン）に分解します。
+            const lex = (input) => {
+                const tokens = [];
+                let cursor = 0;
+
+                // トークンの定義と正規表現（新しいルールを追加）
+                // より具体的なパターンを先に記述することで、より正確にマッチさせます
+                const tokenTypes = [
+                    { type: 'DECLARE_VAR', regex: /^お名前は「(.+?)」でお願いします。\n?/ },
+                    { type: 'ASSIGN_VAR', regex: /^「(.+?)」に (\d+) を(お渡しします。|渡してください。)\n?/ },
+                    { type: 'MULTIPLY_VAR', regex: /^「(.+?)」を (\d+) 倍にしていただけますでしょうか。\n?/ },
+                    { type: 'ADD_VAR', regex: /^「(.+?)」に (\d+) を足していただけますでしょうか。\n?/ },
+                    { type: 'SUBTRACT_VAR', regex: /^「(.+?)」から (\d+) を引いていただけますでしょうか。\n?/ },
+                    { type: 'DIVIDE_VAR', regex: /^「(.+?)」を (\d+) で割っていただけますでしょうか。\n?/ },
+                    { type: 'MODULO_VAR', regex: /^「(.+?)」を (\d+) で割ったあまりを教えていただけますでしょうか。\n?/ }, 
+                    { type: 'PRINT_VAR', regex: /^「(.+?)」の値をお聞かせください。\n?/ },
+                    { type: 'REPORT_MSG', regex: /^「(.+?)」とご報告ください。\n?/ },
+                    { type: 'IF_GREATER_CONDITION', regex: /^「(.+?)」が (\d+) よりも大きいかどうか、お教えいただけますでしょうか。\n?/ }, 
+                    { type: 'IF_EQUAL_CONDITION', regex: /^「(.+?)」が (\d+) と同じかどうか、お教えいただけますでしょうか。\n?/ }, 
+                    { type: 'IF_TRUE_BLOCK', regex: /^もし「はい」でございましたら\n?/ },
+                    { type: 'IF_FALSE_BLOCK', regex: /^そうでなければ\n?/ },
+                    { type: 'END_IF', regex: /^お話は以上でございます。\n?/ },
+                    { type: 'REPEAT_START', regex: /^(\d+) 回繰り返してください。\n?/ },
+                    { type: 'REPEAT_END', regex: /^繰り返しは以上でございます。\n?/ },
+
+                    // Brainfuck-like commands
+                    { type: 'PTR_INC', regex: /^ポインタを右にずらしていただけますでしょうか。\n?/ },
+                    { type: 'PTR_DEC', regex: /^ポインタを左にずらしていただけますでしょうか。\n?/ },
+                    { type: 'VAL_INC', regex: /^ポインタの値を増やしていただけますでしょうか。\n?/ },
+                    { type: 'VAL_DEC', regex: /^ポインタの値を減らしていただけますでしょうか。\n?/ },
+                    { type: 'OUTPUT_VAL', regex: /^ポインタの値を読み上げていただけますでしょうか。\n?/ },
+                    { type: 'INPUT_VAL', regex: /^入力をお受け取りいただけますでしょうか。\n?/ },
+                    { type: 'LOOP_START', regex: /^もしポインタの値が0なら、この先へ行っていただけますでしょうか。\n?/ },
+                    { type: 'LOOP_END', regex: /^ポインタの値が0でなければ、ここへ戻っていただけますでしょうか。\n?/ },
+
+                    { type: 'LINE_SEPARATOR', regex: /^---\n?/ }, // コードブロックを区切るためのセパレータ（ヘルプ用）
+                    { type: 'WHITESPACE', regex: /^\s+/ }, // スペース、改行などをスキップ
+                ];
+
+                while (cursor < input.length) {
+                    let matched = false;
+                    for (const { type, regex } of tokenTypes) {
+                        const match = input.substring(cursor).match(regex);
+                        if (match) {
+                            if (type !== 'WHITESPACE') {
+                                // 改行文字を考慮して行番号を正確に計算
+                                const line = input.substring(0, cursor).split('\n').length;
+                                tokens.push({ type, value: match, line: line });
+                            }
+                            cursor += match[0].length;
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (!matched) {
+                        const line = input.substring(0, cursor).split('\n').length;
+                        // 予期しない文字または構文エラー
+                        const offendingLine = input.substring(cursor).split('\n')[0];
+                        throw new Error(`未知の構文です（${line}行目）: '${offendingLine.substring(0, 20)}...'`);
+                    }
+                }
+                return tokens;
+            };
+
+            // 構文解析器 (Parser)
+            // トークンの並びから、プログラムの構造（抽象構文木 AST）を構築します。
+            const parse = (tokens) => {
+                let tokenIndex = 0;
+
+                const parseBlock = () => {
+                    const blockNodes = [];
+                    while (tokenIndex < tokens.length) {
+                        const token = tokens[tokenIndex];
+                        if (!token) break; // End of tokens
+
+                        // ブロックの終了条件（ネストされたIF文/繰り返し文/ループ文の終了、またはELSEブロックの開始）
+                        if (token.type === 'IF_FALSE_BLOCK' || token.type === 'END_IF' || token.type === 'REPEAT_END' || token.type === 'LOOP_END') {
+                            return blockNodes;
+                        }
+                        // LINE_SEPARATORはトップレベルのみで処理し、ブロック内では無視
+                        if (token.type === 'LINE_SEPARATOR') {
+                            tokenIndex++; // skip it
+                            continue;
+                        }
+
+                        switch (token.type) {
+                            case 'DECLARE_VAR':
+                                blockNodes.push({ type: 'DECLARE_VAR_NODE', name: token.value[1] });
+                                break;
+                            case 'ASSIGN_VAR':
+                                blockNodes.push({ type: 'ASSIGN_VAR_NODE', name: token.value[1], value: parseInt(token.value[2], 10) });
+                                break;
+                            case 'MULTIPLY_VAR':
+                                blockNodes.push({ type: 'MULTIPLY_VAR_NODE', name: token.value[1], factor: parseInt(token.value[2], 10) });
+                                break;
+                            case 'ADD_VAR':
+                                blockNodes.push({ type: 'ADD_VAR_NODE', name: token.value[1], value: parseInt(token.value[2], 10) });
+                                break;
+                            case 'SUBTRACT_VAR':
+                                blockNodes.push({ type: 'SUBTRACT_VAR_NODE', name: token.value[1], value: parseInt(token.value[2], 10) });
+                                break;
+                            case 'DIVIDE_VAR':
+                                blockNodes.push({ type: 'DIVIDE_VAR_NODE', name: token.value[1], divisor: parseInt(token.value[2], 10) });
+                                break;
+                            case 'MODULO_VAR': 
+                                blockNodes.push({ type: 'MODULO_VAR_NODE', name: token.value[1], divisor: parseInt(token.value[2], 10) });
+                                break;
+                            case 'PRINT_VAR':
+                                blockNodes.push({ type: 'PRINT_VAR_NODE', name: token.value[1] });
+                                break;
+                            case 'REPORT_MSG':
+                                blockNodes.push({ type: 'REPORT_MSG_NODE', message: token.value[1] });
+                                break;
+                            case 'IF_GREATER_CONDITION':
+                            case 'IF_EQUAL_CONDITION': 
+                                const currentIfLine = token.line; // エラー報告用に行番号を保持
+                                const ifNode = {
+                                    type: 'IF_NODE',
+                                    conditionType: token.type, // 条件のタイプを保持
+                                    name: token.value[1],
+                                    comparisonValue: parseInt(token.value[2], 10),
+                                    trueBlock: [],
+                                    falseBlock: [],
+                                };
+
+                                tokenIndex++; // Consume IF_CONDITION token
+
+                                // Parse true block
+                                if (tokens[tokenIndex] && tokens[tokenIndex].type === 'IF_TRUE_BLOCK') {
+                                    tokenIndex++; // Consume IF_TRUE_BLOCK token
+                                    ifNode.trueBlock = parseBlock(); // Recursive call for true block
+                                } else {
+                                    throw new Error(`「もし『はい』でございましたら」が見つかりません。（${currentIfLine}行目）`);
+                                }
+
+                                // Check for else block
+                                if (tokens[tokenIndex] && tokens[tokenIndex].type === 'IF_FALSE_BLOCK') {
+                                    tokenIndex++; // Consume IF_FALSE_BLOCK token
+                                    ifNode.falseBlock = parseBlock(); // Recursive call for false block
+                                }
+
+                                // Ensure IF block is closed properly
+                                if (tokens[tokenIndex] && tokens[tokenIndex].type === 'END_IF') {
+                                    blockNodes.push(ifNode);
+                                    // tokenIndex will be advanced after the switch for END_IF.
+                                } else {
+                                    throw new Error(`「お話は以上でございます。」が見つかりません。（${currentIfLine}行目）`);
+                                }
+                                break; // Break from switch after handling IF_CONDITION
+                            case 'REPEAT_START':
+                                const repeatCount = parseInt(token.value[1], 10);
+                                const repeatLine = token.line;
+                                tokenIndex++; // Consume REPEAT_START
+
+                                const repeatBody = parseBlock(); // Recursively parse the block inside the loop
+
+                                if (tokens[tokenIndex] && tokens[tokenIndex].type === 'REPEAT_END') {
+                                    blockNodes.push({
+                                        type: 'REPEAT_NODE',
+                                        count: repeatCount,
+                                        body: repeatBody,
+                                    });
+                                    // tokenIndex will be advanced after the switch for REPEAT_END.
+                                } else {
+                                    throw new Error(`「繰り返しは以上でございます。」が見つかりません。（${repeatLine}行目）`);
+                                }
+                                break; // Break from switch after handling REPEAT_START
+
+                            // Brainfuck-like commands (新しい機能のASTノード追加)
+                            case 'PTR_INC':
+                                blockNodes.push({ type: 'PTR_INC_NODE' });
+                                break;
+                            case 'PTR_DEC':
+                                blockNodes.push({ type: 'PTR_DEC_NODE' });
+                                break;
+                            case 'VAL_INC':
+                                blockNodes.push({ type: 'VAL_INC_NODE' });
+                                break;
+                            case 'VAL_DEC':
+                                blockNodes.push({ type: 'VAL_DEC_NODE' });
+                                break;
+                            case 'OUTPUT_VAL':
+                                blockNodes.push({ type: 'OUTPUT_VAL_NODE' });
+                                break;
+                            case 'INPUT_VAL':
+                                blockNodes.push({ type: 'INPUT_VAL_NODE' });
+                                break;
+                            case 'LOOP_START':
+                                const loopStartLine = token.line;
+                                tokenIndex++; // Consume LOOP_START
+
+                                const loopBody = parseBlock(); // Recursively parse the block inside the loop
+
+                                if (tokens[tokenIndex] && tokens[tokenIndex].type === 'LOOP_END') {
+                                    blockNodes.push({
+                                        type: 'LOOP_NODE',
+                                        body: loopBody,
+                                    });
+                                    // tokenIndex will be advanced after the switch for LOOP_END.
+                                } else {
+                                    throw new Error(`「ポインタの値が0でなければ、ここへ戻っていただけますでしょうか。」が見つかりません。（${loopStartLine}行目）`);
+                                }
+                                break; // Break from switch after handling LOOP_START
+
+                            default:
+                                throw new Error(`予期せぬトークンです: ${token.type} （${token.line}行目）`);
+                        }
+                        // IF_GREATER_CONDITION, IF_EQUAL_CONDITION, REPEAT_START, LOOP_START 以外の場合のみ tokenIndex を進める
+                        // これらは内部でトークンを消費するため
+                        if (token.type !== 'IF_GREATER_CONDITION' && token.type !== 'IF_EQUAL_CONDITION' && token.type !== 'REPEAT_START' && token.type !== 'LOOP_START') {
+                               tokenIndex++;
+                        }
+                    }
+                    return blockNodes;
+                };
+
+                // グローバルスコープの解析を開始
+                const globalAst = parseBlock();
+                return globalAst;
+            };
+
+            // 評価器 (Evaluator)
+            // 抽象構文木 (AST) を実行し、結果を生成します。
+            const evaluate = async (ast, variables, setOutput, setIsInputModalOpen, setInputModalValue, resolveInputPromise) => {
+                let currentOutput = '';
+                // 変数スコープは参照渡しで共有（シンプル化のため）
+                // Brainfuckのためのメモリとポインタもvariablesに含める
+                // 初回呼び出し時、またはvariablesにmemoryがない場合に初期化
+                if (!variables.memory) {
+                    variables.memory = new Array(30000).fill(0); // Brainfuck標準の30,000セル
+                }
+                if (typeof variables.dataPointer === 'undefined') {
+                    variables.dataPointer = 0;
+                }
+
+                for (const node of ast) {
+                    switch (node.type) {
+                        case 'DECLARE_VAR_NODE':
+                            if (Object.prototype.hasOwnProperty.call(variables, node.name)) {
+                                throw new Error(`申し訳ございません、「${node.name}」という変数は既に宣言されております。`);
+                            }
+                            variables[node.name] = undefined; // 変数を宣言し、undefined で初期化
+                            break;
+                        case 'ASSIGN_VAR_NODE':
+                            if (!Object.prototype.hasOwnProperty.call(variables, node.name)) {
+                                throw new Error(`申し訳ございません、「${node.name}」という変数はまだ宣言されておりません。`);
+                            }
+                            variables[node.name] = node.value;
+                            break;
+                        case 'MULTIPLY_VAR_NODE':
+                            if (!Object.prototype.hasOwnProperty.call(variables, node.name)) {
+                                throw new Error(`申し訳ございません、「${node.name}」という変数はまだ宣言されておりません。`);
+                            }
+                            if (typeof variables[node.name] !== 'number') {
+                                throw new Error(`恐れ入ります、「${node.name}」は数値ではありませんので計算できません。`);
+                            }
+                            variables[node.name] *= node.factor;
+                            break;
+                        case 'ADD_VAR_NODE':
+                            if (!Object.prototype.hasOwnProperty.call(variables, node.name)) {
+                                throw new Error(`申し訳ございません、「${node.name}」という変数はまだ宣言されておりません。`);
+                            }
+                            if (typeof variables[node.name] !== 'number') {
+                                throw new Error(`恐れ入ります、「${node.name}」は数値ではありませんので計算できません。`);
+                            }
+                            variables[node.name] += node.value;
+                            break;
+                        case 'SUBTRACT_VAR_NODE':
+                            if (!Object.prototype.hasOwnProperty.call(variables, node.name)) {
+                                throw new Error(`申し訳ございません、「${node.name}」という変数はまだ宣言されておりません。`);
+                            }
+                            if (typeof variables[node.name] !== 'number') {
+                                throw new Error(`恐れ入ります、「${node.name}」は数値ではありませんので計算できません。`);
+                            }
+                            variables[node.name] -= node.value;
+                            break;
+                        case 'DIVIDE_VAR_NODE':
+                            if (!Object.prototype.hasOwnProperty.call(variables, node.name)) {
+                                throw new Error(`申し訳ございません、「${node.name}」という変数はまだ宣言されておりません。`);
+                            }
+                            if (typeof variables[node.name] !== 'number') {
+                                throw new Error(`恐れ入ります、「${node.name}」は数値ではありませんので計算できません。`);
+                            }
+                            if (node.divisor === 0) {
+                                throw new Error(`恐れ入ります、ゼロで割ることはできません。`);
+                            }
+                            variables[node.name] /= node.divisor;
+                            break;
+                        case 'MODULO_VAR_NODE': 
+                            if (!Object.prototype.hasOwnProperty.call(variables, node.name)) {
+                                throw new Error(`申し訳ございません、「${node.name}」という変数はまだ宣言されておりません。`);
+                            }
+                            if (typeof variables[node.name] !== 'number') {
+                                throw new Error(`恐れ入ります、「${node.name}」は数値ではありませんので計算できません。`);
+                            }
+                            if (node.divisor === 0) {
+                                throw new Error(`恐れ入ります、ゼロで割ることはできません。`);
+                            }
+                            variables[node.name] %= node.divisor;
+                            break;
+                        case 'PRINT_VAR_NODE':
+                            if (!Object.prototype.hasOwnProperty.call(variables, node.name)) {
+                                throw new Error(`申し訳ございません、「${node.name}」という変数はまだ宣言されておりません。`);
+                            }
+                            currentOutput += `「${node.name}」の値は ${variables[node.name]} でございます。\n`;
+                            break;
+                        case 'REPORT_MSG_NODE':
+                            currentOutput += `${node.message}\n`;
+                            break;
+                        case 'IF_NODE':
+                            if (!Object.prototype.hasOwnProperty.call(variables, node.name)) {
+                                throw new Error(`申し訳ございません、「${node.name}」という変数はまだ宣言されておりません。`);
+                            }
+                            if (typeof variables[node.name] !== 'number') {
+                                throw new Error(`恐れ入ります、「${node.name}」は数値ではありませんので比較できません。`);
+                            }
+                            let conditionResult = false;
+                            if (node.conditionType === 'IF_GREATER_CONDITION') {
+                                conditionResult = variables[node.name] > node.comparisonValue;
+                            } else if (node.conditionType === 'IF_EQUAL_CONDITION') { 
+                                conditionResult = variables[node.name] === node.comparisonValue;
+                            }
+
+                            if (conditionResult) {
+                                currentOutput += await evaluate(node.trueBlock, variables, setOutput, setIsInputModalOpen, setInputModalValue, resolveInputPromise); // trueBlockを評価
+                            } else {
+                                currentOutput += await evaluate(node.falseBlock, variables, setOutput, setIsInputModalOpen, setInputModalValue, resolveInputPromise); // falseBlockを評価
+                            }
+                            break;
+                        case 'REPEAT_NODE':
+                            if (node.count < 0) {
+                                throw new Error(`恐れ入ります、繰り返し回数は負の値にできません。`);
+                            }
+                            for (let i = 0; i < node.count; i++) {
+                                currentOutput += await evaluate(node.body, variables, setOutput, setIsInputModalOpen, setInputModalValue, resolveInputPromise); // ループ本体を評価
+                            }
+                            break;
+
+                        // Brainfuck-like commandsの評価ロジック
+                        case 'PTR_INC_NODE':
+                            variables.dataPointer++;
+                            // メモリの自動拡張
+                            if (variables.dataPointer >= variables.memory.length) {
+                                variables.memory.push(0); // 必要に応じて新しいセルを追加
+                            }
+                            break;
+                        case 'PTR_DEC_NODE':
+                            variables.dataPointer--;
+                            if (variables.dataPointer < 0) {
+                                throw new Error(`ポインタがメモリの範囲を超えました。`);
+                            }
+                            break;
+                        case 'VAL_INC_NODE':
+                            variables.memory[variables.dataPointer]++;
+                            // セルの値が255を超えたら0に戻す（Brainfuckの挙動に合わせる）
+                            if (variables.memory[variables.dataPointer] > 255) {
+                                variables.memory[variables.dataPointer] = 0;
+                            }
+                            break;
+                        case 'VAL_DEC_NODE':
+                            variables.memory[variables.dataPointer]--;
+                             // セルの値が0を下回ったら255に戻す（Brainfuckの挙動に合わせる）
+                            if (variables.memory[variables.dataPointer] < 0) {
+                                variables.memory[variables.dataPointer] = 255;
+                            }
+                            break;
+                        case 'OUTPUT_VAL_NODE':
+                            currentOutput += String.fromCharCode(variables.memory[variables.dataPointer]);
+                            break;
+                        case 'INPUT_VAL_NODE':
+                            // カスタムモーダルを表示し、入力待ち
+                            setIsInputModalOpen(true);
+                            // Promiseを作成し、resolve関数をrefに保存
+                            const promise = new Promise((resolve) => {
+                                resolveInputPromise.current = resolve;
+                            });
+                            // プロミスが解決されるまで待機
+                            await promise;
+
+                            const inputChar = inputModalValue; // モーダルからの入力値
+                            if (inputChar && inputChar.length > 0) {
+                                variables.memory[variables.dataPointer] = inputChar.charCodeAt(0);
+                            } else {
+                                // 入力がなかった場合のデフォルト値（Brainfuckでは通常0）
+                                variables.memory[variables.dataPointer] = 0;
+                            }
+                            setInputModalValue(''); // 入力値をクリア
+                            setIsInputModalOpen(false); // モーダルを閉じる
+                            break;
+                        case 'LOOP_NODE':
+                            // ループは現在のポインタが指す値が0になるまで繰り返す
+                            while (variables.memory[variables.dataPointer] !== 0) {
+                                currentOutput += await evaluate(node.body, variables, setOutput, setIsInputModalOpen, setInputModalValue, resolveInputPromise); // ループ本体を評価
+                            }
+                            break;
+                        default:
+                            throw new Error(`不明なノードタイプです: ${node.type}`);
+                    }
+                    // 実行途中の出力を更新して表示
+                    setOutput(prevOutput => prevOutput + currentOutput);
+                    currentOutput = ''; // 更新後、一時出力をクリア
+                }
+                return currentOutput;
+            };
+
+            const runCode = async () => { // async functionに変更
+                setOutput('');
+                setError('');
+                const globalVariables = {}; // グローバルスコープの変数を初期化
+
+                // 「たすけてください」が入力された場合の処理
+                if (code.trim() === 'たすけてください') {
+                    setOutput(HELP_TEXT);
+                    return; // これ以上インタプリタの処理は行わない
+                }
+
+                try {
+                    // 1. 字句解析
+                    const tokens = lex(code);
+                    // console.log('トークン:', tokens); // デバッグ用
+
+                    // 2. 構文解析
+                    const ast = parse(tokens);
+                    // console.log('AST:', JSON.stringify(ast, null, 2)); // デバッグ用
+
+                    // 3. 評価
+                    // evaluate関数がPromiseを返すのでawaitする
+                    const result = await evaluate(ast, globalVariables, setOutput, setIsInputModalOpen, setInputModalValue, resolveInputPromise);
+                    // 最終的な出力を設定
+                    setOutput(prevOutput => prevOutput + result);
+                } catch (e) {
+                    setError(`エラーが発生いたしました: ${e.message}`);
+                    console.error(e);
+                }
+            };
+
+            // 入力モーダルの送信ハンドラ
+            const handleInputSubmit = (e) => {
+                e.preventDefault();
+                if (resolveInputPromise.current) {
+                    resolveInputPromise.current(); // Promiseを解決
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-100 p-4 font-sans flex items-center justify-center">
+                    <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl border-4 border-purple-300">
+                        <h1 className="text-3xl font-bold text-center text-purple-700 mb-6 pb-2 border-b-2 border-purple-200">
+                            「お世話」言語 インタプリタ 🍵
+                        </h1>
+
+                        <div className="mb-6">
+                            <label htmlFor="code-input" className="block text-gray-700 text-lg font-semibold mb-2">
+                                こちらへコードをご入力くださいませ:
+                            </label>
+                            <textarea
+                                id="code-input"
+                                className="w-full p-4 rounded-lg border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 font-mono text-base bg-gray-50"
+                                rows="20"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value)}
+                                placeholder={`お世話言語のコードをここに書いてください。\n例:\nお名前は「ポイントさん」でお願いします。\n「ポイントさん」に 100 を渡してください。\n「ポイントさん」に 50 を足していただけますでしょうか。\n「ポイントさん」から 20 を引いていただけますでしょうか。\n「ポイントさん」を 3 で割っていただけますでしょうか。\n「ポイントさん」を 3 で割ったあまりを教えていただけますでしょうか。\n「ポイントさん」の値をお聞かせください。\n\nお名前は「スコアさん」でお願いします。\n「スコアさん」に 80 を渡してください。\n「スコアさん」が 70 よりも大きいかどうか、お教えいただけますでしょうか。\nもし「はい」でございましたら\n  「スコアは良好でございます。」とご報告ください。\n  「スコアさん」が 90 と同じかどうか、お教えいただけますでしょうか。\n  もし「はい」でございましたら\n    「素晴らしいスコアでございます！」とご報告ください。\n  そうでなければ\n    「もう少しで最高点でございます。」とご報告ください。\n  お話は以上でございます。\nそうでなければ\n  「スコアは改善の余地がございます。」とご報告ください。\nお話は以上でございます。\n\nお名前は「カウンターさん」でお願いします。\n「カウンターさん」に 0 を渡してください。\n3 回繰り返してください。\n    「カウンターさん」に 1 を足していただけますでしょうか。\n    「現在のカウンターの値は：」とご報告ください。\n    「カウンターさん」の値をお聞かせください。\n繰り返しは以上でございます。\n\nポインタの値を増やしていただけますでしょうか。\nポインタの値を増やしていただけますでしょうか。\nポインタの値を増やしていただけますでしょうか。\nポインタを右にずらしていただけますでしょうか。\nポインタの値を増やしていただけますでしょうか。\nポインタを右にずらしていただけますでしょうか。\nポインタの値を増やしていただけますでしょうか。\nポインタの値を読み上げていただけますでしょうか。\nポインタを右にずらしていただけますでしょうか。\nポインタの値を増やしていただけますでしょうか。\nポインタの値を読み上げていただけますでしょうか。\nポインタを右にずらしていただけますでしょうか。\nポインタの値を増やしていただけますでしょうか。\nポインタの値を増やしていただけますでしょうか。\nポインタの値を増やしていただけますでしょうか。\nポインタの値を読み上げていただけますでしょうか。\n`}
+                            ></textarea>
+                        </div>
+
+                        <button
+                            onClick={runCode}
+                            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75"
+                        >
+                            実行していただきます 🚀
+                        </button>
+
+                        {error && (
+                            <div className="mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                                <h3 className="font-bold text-lg mb-2">エラーが発生いたしました:</h3>
+                                <p className="font-mono">{error}</p>
+                            </div>
+                        )}
+
+                        <div className="mt-6">
+                            <h2 className="text-2xl font-bold text-purple-700 mb-3 pb-1 border-b-2 border-purple-200">
+                                ご報告 (出力結果):
+                            </h2>
+                            <pre className="output-area bg-gray-50 p-4 rounded-lg border-2 border-gray-300 text-gray-800 text-base overflow-auto max-h-96">
+                                {output}
+                            </pre>
+                        </div>
+                    </div>
+
+                    {/* Custom Input Modal */}
+                    {isInputModalOpen && (
+                        <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
+                            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm border-4 border-purple-300">
+                                <h3 className="text-xl font-bold text-purple-700 mb-4">主様、何か文字をお与えください。</h3>
+                                <form onSubmit={handleInputSubmit}>
+                                    <input
+                                        type="text"
+                                        className="w-full p-3 rounded-lg border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-400 font-mono text-lg text-center"
+                                        maxLength="1" // 1文字のみ入力可能
+                                        value={inputModalValue}
+                                        onChange={(e) => setInputModalValue(e.target.value)}
+                                        autoFocus
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="mt-4 w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105"
+                                    >
+                                        お渡しします
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        // ReactアプリケーションをHTMLの 'root' 要素にレンダリング
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
